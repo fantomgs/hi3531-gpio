@@ -1,0 +1,110 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BTOOLS_NAME	btools.c	18;"	d	file:
+BTOOLS_VERSION	btools.c	19;"	d	file:
+CACHE_ADDR	hil2s.c	30;"	d	file:
+CACHE_MAP_LENGTH	hil2s.c	31;"	d	file:
+CACHE_RESET_TMP	hil2s.c	56;"	d	file:
+CACHE_STAT_SIG	hil2s.c	25;"	d	file:
+DDRC0_ADDR	hiddrs.c	35;"	d	file:
+DDRC1_ADDR	hiddrs.c	36;"	d	file:
+DDRC_BASE_ADDR	hiddrs.c	32;"	d	file:
+DDRC_MAP_LENGTH	hiddrs.c	33;"	d	file:
+DDRC_TEST7	hiddrs.c	38;"	d	file:
+DDRC_TEST8	hiddrs.c	39;"	d	file:
+DDRC_TEST9	hiddrs.c	40;"	d	file:
+DDRC_VALUE	hiddrs.c	42;"	d	file:
+DDR_STAT_SIG	hiddrs.c	26;"	d	file:
+DEFAULT_HEIGHT	hivd.c	38;"	d	file:
+DEFAULT_MD_LEN	himd.c	39;"	d	file:
+DEFAULT_MD_LEN	himm.c	33;"	d	file:
+DEFAULT_SAVEFILE	hivd.c	40;"	d	file:
+DEFAULT_STRIDE	hivd.c	36;"	d	file:
+DEFAULT_WIDTH	hivd.c	37;"	d	file:
+HI_UNF_I2C_Close	hii2c.c	/^extern int HI_UNF_I2C_Close(void);$/;"	p	file:	signature:(void)
+HI_UNF_I2C_Open	hii2c.c	/^extern int HI_UNF_I2C_Open (void);$/;"	p	file:	signature:(void)
+HI_UNF_I2C_Read	hii2c.c	/^extern int HI_UNF_I2C_Read(U32 u32I2cNum, U8 u8DevAddress, U32 u32RegAddr,$/;"	p	file:	signature:(U32 u32I2cNum, U8 u8DevAddress, U32 u32RegAddr, U32 u32RegAddrCount, U8 *pu8Buf, U32 u32Length)
+HI_UNF_I2C_Write	hii2c.c	/^extern int HI_UNF_I2C_Write(U32 u32I2cNum, U8 u8DevAddress, U32 u32RegAddr,$/;"	p	file:	signature:(U32 u32I2cNum, U8 u8DevAddress, U32 u32RegAddr, U32 u32RegAddrCount, U8 * pu8Buf, U32 u32Length)
+IO_ADDRESS	hiddrs.c	61;"	d	file:
+IO_ADDRESS	hil2s.c	54;"	d	file:
+L2_EXT_COUNTER0	hil2s.c	40;"	d	file:
+L2_EXT_COUNTER1	hil2s.c	41;"	d	file:
+L2_EXT_COUNTER2	hil2s.c	42;"	d	file:
+L2_INT_COUNTER2	hil2s.c	33;"	d	file:
+L2_INT_COUNTER3	hil2s.c	34;"	d	file:
+L2_INT_COUNTER4	hil2s.c	35;"	d	file:
+L2_INT_COUNTER5	hil2s.c	36;"	d	file:
+L2_INT_COUNTER6	hil2s.c	37;"	d	file:
+L2_INT_COUNTER7	hil2s.c	38;"	d	file:
+MAX_SECOND	hiddrs.c	44;"	d	file:
+ONE_SECOND	hiddrs.c	43;"	d	file:
+OPEN_FILE	hiddrs.c	25;"	d	file:
+OPEN_FILE	hil2s.c	24;"	d	file:
+PAGE_SIZE_MASK	hiddrs.c	28;"	d	file:
+PAGE_SIZE_MASK	hil2s.c	27;"	d	file:
+SHAREFILE	himc.c	87;"	d	file:
+SHAREFILE	himd.c	128;"	d	file:
+SHAREFILE	himd.c	194;"	d	file:
+SHAREFILE	himd.c	71;"	d	file:
+SHAREFILE	himm.c	53;"	d	file:
+TIMER_INTERVAL	hiddrs.c	30;"	d	file:
+TIMER_INTERVAL	hil2s.c	29;"	d	file:
+UNSIGNED_INT_MAX	hil2s.c	55;"	d	file:
+cache_addr	hil2s.c	/^static unsigned int *cache_addr;$/;"	v	file:
+cache_ctrl_c	hil2s.c	/^static void cache_ctrl_c(int n)$/;"	f	file:	signature:(int n)
+cache_statistic	hil2s.c	/^static void cache_statistic(int n)$/;"	f	file:	signature:(int n)
+ddr_ctrl_c	hiddrs.c	/^static void ddr_ctrl_c(int n)$/;"	f	file:	signature:(int n)
+ddr_statistic	hiddrs.c	/^static void ddr_statistic(int n)$/;"	f	file:	signature:(int n)
+ddrc0_addr	hiddrs.c	/^static unsigned char *ddrc0_addr;$/;"	v	file:
+ddrc1_addr	hiddrs.c	/^static unsigned char *ddrc1_addr;$/;"	v	file:
+ddrc_base_addr	hiddrs.c	/^static unsigned char *ddrc_base_addr;$/;"	v	file:
+ddrc_num	hiddrs.c	/^static unsigned int ddrc_num;$/;"	v	file:
+ddrc_remap	hiddrs.c	/^static int ddrc_remap(unsigned int ddrc_num)$/;"	f	file:	signature:(unsigned int ddrc_num)
+ddrc_remap	hiddrs.c	/^static int ddrc_remap(unsigned int ddrc_num);$/;"	p	file:	signature:(unsigned int ddrc_num)
+ddrc_unmap	hiddrs.c	/^static void ddrc_unmap(unsigned int ddrc_num)$/;"	f	file:	signature:(unsigned int ddrc_num)
+ddrc_unmap	hiddrs.c	/^static void ddrc_unmap(unsigned int ddrc_num);$/;"	p	file:	signature:(unsigned int ddrc_num)
+do_cmd_install	btools.c	/^LOCALFUNC HI_RET do_cmd_install(int argc, char* argv[])$/;"	f	signature:(int argc, char* argv[])
+do_cmd_install	btools.c	/^LOCALFUNC HI_RET do_cmd_install(int argc, char* argv[]);$/;"	p	file:	signature:(int argc, char* argv[])
+do_cmd_uninstall	btools.c	/^HI_RET do_cmd_uninstall(int argc, char* argv[])$/;"	f	signature:(int argc, char* argv[])
+do_cmd_uninstall	btools.c	/^HI_RET do_cmd_uninstall(int argc, char* argv[]);$/;"	p	file:	signature:(int argc, char* argv[])
+fd	hiddrs.c	/^static int fd;$/;"	v	file:
+fd	hil2s.c	/^static int fd;$/;"	v	file:
+gBToolsCmds	btools.c	/^static CMD_SHELL_T gBToolsCmds[] =$/;"	v	file:
+hiddrs	hiddrs.c	/^HI_RET hiddrs(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+hier	hii2c.c	/^HI_RET hier(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+hiew	hii2c.c	/^HI_RET hiew(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+hil2s	hil2s.c	/^HI_RET hil2s(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+himc	himc.c	/^HI_RET himc(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+himd	himd.c	/^HI_RET himd(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+himd_l	himd.c	/^HI_RET himd_l(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+himdb	himd.c	/^HI_RET himdb(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+himm	himm.c	/^HI_RET himm(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+hivd	hivd.c	/^HI_RET hivd(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+main	btools.c	/^int main(int argc , char* argv[])$/;"	f	signature:(int argc , char* argv[])
+opts	btools.c	/^static ARGOpt_t opts[] =$/;"	v	file:
+parse_args	hiddrs.c	/^static int parse_args(int argc, char *argv[],$/;"	f	file:	signature:(int argc, char *argv[], unsigned int *second, unsigned int *ddrc)
+parse_args	hiddrs.c	/^static int parse_args(int argc, char *argv[],$/;"	p	file:	signature:(int argc, char *argv[], unsigned int *second, unsigned int *ddrc)
+print_help_message	btools.c	/^HI_RET print_help_message(int argc, char* argv[])$/;"	f	signature:(int argc, char* argv[])
+print_help_message	btools.c	/^HI_RET print_help_message(int argc, char* argv[]);$/;"	p	file:	signature:(int argc, char* argv[])
+print_usage	hiddrs.c	/^static void print_usage(void)$/;"	f	file:	signature:(void)
+print_usage	hiddrs.c	/^static void print_usage(void);$/;"	p	file:	signature:(void)
+print_version_message	btools.c	/^HI_RET print_version_message(int argc, char* argv[] )$/;"	f	signature:(int argc, char* argv[] )
+read_ddrc_reg	hiddrs.c	69;"	d	file:
+reg_read	hiddrs.c	46;"	d	file:
+reg_read	hil2s.c	44;"	d	file:
+reg_value	hiddrs.c	/^static unsigned int reg_value;$/;"	v	file:
+reg_value	hil2s.c	/^static unsigned int reg_value;$/;"	v	file:
+reg_write	hiddrs.c	47;"	d	file:
+reg_write	hil2s.c	45;"	d	file:
+reset_l1_reg	hil2s.c	/^static void reset_l1_reg()$/;"	f	file:
+reset_l2_reg	hil2s.c	/^static void reset_l2_reg()$/;"	f	file:
+sa	hiddrs.c	/^static struct sigaction sa;$/;"	v	typeref:struct:sigaction	file:
+sa	hil2s.c	/^static struct sigaction sa;$/;"	v	typeref:struct:sigaction	file:
+timer_interval	hiddrs.c	/^static unsigned int timer_interval = TIMER_INTERVAL;$/;"	v	file:
+timer_interval	hil2s.c	/^static unsigned int timer_interval = TIMER_INTERVAL;$/;"	v	file:
+tt	hiddrs.c	/^static timer_t tt;$/;"	v	file:
+tt	hil2s.c	/^static timer_t tt;$/;"	v	file:
