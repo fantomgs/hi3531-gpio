@@ -111,6 +111,31 @@ typedef void (*pcallback)(int event);
 //#	TRUE = 1
 //#}BOOL;
 
+#define GPION_0 (1<<2)
+#define GPION_1 (1<<3)
+#define GPION_2 (1<<4)
+#define GPION_3 (1<<5)
+#define GPION_4 (1<<6)
+#define GPION_5 (1<<7)
+#define GPION_6 (1<<8)
+#define GPION_7 (1<<9)
+
+typedef struct NodeList serialNode;
+struct NodeList{
+	char name[8];
+
+}
+
+
+
+
+
+
+
+
+
+
+
 
 typedef struct {
 	char head;
