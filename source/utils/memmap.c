@@ -75,7 +75,6 @@ void * memmap(unsigned int phy_addr, unsigned int size)
             pTmp->refcount++;   /* referrence count increase by 1  */
 			return (void *)(pTmp->Start_V + phy_addr - pTmp->Start_P);
 		}
-
 		pTmp = pTmp->next;
 	}
 

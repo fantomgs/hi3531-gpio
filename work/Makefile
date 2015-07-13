@@ -58,7 +58,7 @@ $(OUTDIR)/%.o :  $(DRIVERDIR)/memmap/%.c
 	$(COMPILE)
 
 $(MAIN_OBJ) :%.o:%.c $(OUTDIR) $(OBJ) 
-		$(CC) $(CFG_CFLAGS)  $(CFG_INC) -c $(MAIN_SRC) 
+		$(CC) $(CFG_CFLAGS)  $(CFG_INC) -lpthread -c $(MAIN_SRC) 
 
 $(OUTTARGET) :%:%.o $(BASE_OBJ) $(HICOMMON_OBJ)
 	$(CC) $(CFG_INC) -lpthread -lm -o $@ $^
