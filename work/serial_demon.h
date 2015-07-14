@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  serial_demon.c
+ *       Filename:  serial_demon.h
  *
  *    Description: this file is for open a thread to listen a GPIO COM  
  *
@@ -16,12 +16,28 @@
  * =====================================================================================
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "memmap.h"
-#include "hi.h"
-#include "strfunc.h"
 
+#ifndef __SERIAL_THREAD_
+#define __SERIAL_THREAD_
+
+#ifdef WIN32
+#define WIN_API  _decpesc(dllexport) 
+#else
+#define WIN_API 
+#endif
+
+#ifdef __cplusplus 
+extern "C"{
+#endif
+
+int COM_API_INIT();
+int ALB_Open();
+int ALB_Close();
+
+#ifdef __cplusplus 
+}
+#endif
+
+#endif 
 
 
