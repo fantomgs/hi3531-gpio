@@ -125,10 +125,6 @@ typedef void (*pcallback)(int event);
 
 //typedef status_t enum Status; 
 
-#define GPIO_NORMAL			0x00 // GPIO status stay same
-#define GPIO_DIFFERENT		0x01 // GPIO statue different
-#define GPIO_FOR_READ			0		// the node is for the check the GPIO Status
-#define GPIO_FOR_SET			1       // the node is for set the output fuse
 
 typedef struct NodeList serialNode;
 typedef struct Serial_Ops serial_ops;
@@ -142,8 +138,16 @@ typedef struct Serial_Ops serial_ops;
 typedef int (*_set_init)(serialNode *m);
 typedef int (*_set_ops)(serialNode *m);
 typedef int (*_get_status)(serialNode *m);
-typedef int (*logic_func)(serialNode);
+typedef int (*logic_func)(serialNode *m);
 
+#define GPIO_NORMAL			0x00 // GPIO status stay same
+#define GPIO_DIFFERENT		0x01 // GPIO statue different
+
+#define GPIO_FOR_READ			0		// the node is for the check the GPIO Status
+#define GPIO_FOR_SET			1       // the node is for set the output fuse
+
+#define NODE_BUSY				1
+#define NODE_NO_BUSY			0
 //这部分内容以后可能被状态为替代
 typedef enum CMDTYOE{
 	CMD_NORMAL=0,
@@ -167,26 +171,38 @@ typedef unsigned long   DWORD;
 struct NodeList{
 	// 暂时没用 	
 	int id;
+
 	// 可以用于该节点动能的描述
 	char cmd_name[128];
+
     // 若该节点处于使用中状态，则该节点不可用。
+	//   0 --- normal
+	//   1 --- busy
 	int b_busy; 
+
 	//this coule be check  node分为输出型和输入型
 	//使用宏 GPIO_FOR_READ 和 GPIO_FOR_SET
 	int node_type; 
+
 	// 用于表示是否发送消息 该状态可能后期被去除
 	int b_send;
+
 	// 这里还需要一个定时器类型
 	
 	// GPIO 状态，这个状态可能也会被去除，使用一个状态来表示节点状态
 	int gpio_status;  // kepp the gpio status
+
 	//  命令中状态， 该类型为enum类型，状态为 
 	//  NORMAL --> ACTIVE --> RUN
 	//  这里后期修改所有的操作都放在状态位中，通过logic逻辑来控制
 	//  因为GPIO操作基本上都有延时操作。
+	//  0 ---- NORMAL
+	//  1 ---- COMMAND
 	cmd_type_et cmd_type; 	
-	// 操作的回掉函数
+
+	// 逻辑操作的回掉函数
 	logic_func lg_fuc;
+
 	serial_ops ops_p;
 	serialNode *next;
 };
@@ -253,20 +269,32 @@ int gpio1_0_get_status(serialNode *m)
 	return 0;
 }
 
+int gpio1_0_callback_func(serialNode *m)
+{
+	m->b_busy = 0;
+	return 0;
+}
+
 extern int COM_API_INIT()
 {
 	// this is set for one readNode
 	// that will be check by thethread
 	int Ret = 1;
 	serialNode node0,node1,node2,node3;
+
 	char cmdstr[128]="CMD_CMD1";
 	memset(node0.cmd_name,0,sizeof(node0.cmd_name));
 	strncpy(cmdstr,node0.cmd_name,sizeof(cmdstr));
 	node0.cmd_type = CMD_NORMAL;
 	node0.node_type = GPIO_FOR_READ;   //  for check the GPIO status
+
 	node0.ops_p.set_init = gpio1_0_set_init;
+	node0.ops_p.get_status = gpio1_0_get_status;
+	node0.lg_fuc = gpio1_0_callback_func;
+
 	register_read_node(&node0);
 
+	/*
 	strncpy("CMD_CMD_",cmdstr,9);
 	memset(node1.cmd_name,0,sizeof(node1.cmd_name));
 	strncpy(cmdstr,node1.cmd_name,sizeof(cmdstr));
@@ -291,7 +319,7 @@ extern int COM_API_INIT()
 	node2.node_type = GPIO_FOR_SET;   //  for check the GPIO status
 	node3.ops_p.set_init = gpio1_0_set_init;
 	register_read_node(&node3);
-
+	*/
 	Ret = com_gpio_init();
 	if(Ret != 0){
 		printf("com read node init Error");
@@ -364,32 +392,20 @@ static void *work_thread_fuc(void* p)
 			switch (nodetype)
 			{
 				case GPIO_FOR_READ:
-				status_t = tmp->ops_p.get_status(tmp);
-				if(status_t == GPIO_DIFFERENT){
-					// send a msg to the main loop
-					if(tmp->b_send == 'n'){
-						tmp->b_send = 'y';
-					}else if(tmp->b_send == 'y' ){ 
-						// hava alread send the Notification;
-						tmp->b_send = 'n';
-						NoticeHostEvent(tmp->id);	
-						}
-				}else{
-					; // or we do nothing 
-				}
+					// 处理读取端口的代码
+					// 端口状态发生变化后 相应其回调的处理函数
+					if((tmp->b_busy == 0) && (tmp->ops_p.get_status(tmp) == 1)) // if it is not busy and the status is changed				
+					{
+						tmp->lg_fuc(tmp);
+					}
 					break;
 				case GPIO_FOR_SET:
-				cmd_type = tmp->cmd_type;
-				if(cmd_type == CMD_ACTIVE){
-					if(tmp->ops_p.run_cmd(tmp)){
-					// 			
+					// 处理设置消息代码
+					// 当存在命令后，进入回调的处理函数
+					if((tmp->b_busy == 0) && (tmp->cmd_type == CMD_ACTIVE )) // if it is not busy and we get command order
+					{
+						tmp->lg_fuc(tmp);
 					}
-					tmp->cmd_type = CMD_RUN;
-				}else if(status_t == CMD_RUN && 1){ //  set the time interrupt
-					tmp->cmd_type = CMD_NORMAL;
-				}else{
-					; // here we do nothing ;
-				}
 					break;
 				default:
 					break;
