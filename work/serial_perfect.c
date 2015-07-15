@@ -282,16 +282,17 @@ extern int COM_API_INIT()
 	int Ret = 1;
 	serialNode node0,node1,node2,node3;
 
-	char cmdstr[128]="CMD_CMD1";
+	char cmdstr[128]="TEST_CMD1";
 	memset(node0.cmd_name,0,sizeof(node0.cmd_name));
 	strncpy(cmdstr,node0.cmd_name,sizeof(cmdstr));
 	node0.cmd_type = CMD_NORMAL;
 	node0.node_type = GPIO_FOR_READ;   //  for check the GPIO status
-
+	// node operation
+	node0.ops_p.set_init = gpio1_0_set_init;
 	node0.ops_p.set_init = gpio1_0_set_init;
 	node0.ops_p.get_status = gpio1_0_get_status;
+	// logc handle callback
 	node0.lg_fuc = gpio1_0_callback_func;
-
 	register_read_node(&node0);
 
 	/*
@@ -399,6 +400,7 @@ static void *work_thread_fuc(void* p)
 						tmp->lg_fuc(tmp);
 					}
 					break;
+
 				case GPIO_FOR_SET:
 					// 处理设置消息代码
 					// 当存在命令后，进入回调的处理函数
@@ -407,11 +409,13 @@ static void *work_thread_fuc(void* p)
 						tmp->lg_fuc(tmp);
 					}
 					break;
+
 				default:
 					break;
 			}
 			tmp=tmp->next;
 		}
+		//	usleep(20);	
 	}
 }
 
