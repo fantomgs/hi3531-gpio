@@ -159,7 +159,7 @@ struct NodeList{
 	int node_type;  // this coule be check 
 	char b_send;
 	DWORD lasttickcount;
-	status_et gpio_status;  // kepp the gpio status
+	int gpio_status;  // kepp the gpio status
 	cmd_type_et cmd_type; 	
 
 	serial_ops ops_p;
@@ -167,7 +167,6 @@ struct NodeList{
 };
 
 serialNode *p_read_node_head = NULL;
-serialNode *p_write_node_head = NULL;
 
 #define ASC2NUM(ch) (ch - '0')
 #define HEXASC2NUM(ch) (ch - 'A' + 10)
@@ -192,27 +191,6 @@ static int register_read_node(serialNode *node)
 		}
 		tmp->next = node;
 		node->next = NULL;
-	}
-	return 0;
-}
-
-static int register_append_write_node(serialNode *node)
-{
-	serialNode *tmp;
-	if(p_write_node_head == NULL){
-		// add the node to the head
-		p_write_node_head = node;
-		node->next = NULL;
-	}else{
-		tmp = p_write_node_head;
-		// here we need to check if the node list have 
-		// the same node by the function
-		while(tmp->next != NULL)
-		{
-			tmp = tmp->next;
-		}
-		tmp->next=node;
-		node->next=NULL;
 	}
 	return 0;
 }
@@ -261,7 +239,7 @@ extern int COM_API_INIT()
 	node0.ops_p.set_init = gpio1_0_set_init;
 	register_read_node(&node0);
 
-	cmdstr[128]="CMD_CMD_";
+	strncpy("CMD_CMD_",cmdstr,9);
 	memset(node1.cmd_name,0,sizeof(node1.cmd_name));
 	strncpy(cmdstr,node1.cmd_name,sizeof(cmdstr));
 	node1.cmd_type = CMD_NORMAL;
@@ -270,7 +248,7 @@ extern int COM_API_INIT()
 	register_read_node(&node1);
 
 	
-	char cmdstr[128]="CMD_CMD2";
+	strncpy("CMD_CMD_",cmdstr,9);
 	memset(node2.cmd_name,0,sizeof(node2.cmd_name));
 	strncpy(cmdstr,node2.cmd_name,sizeof(cmdstr));
 	node2.cmd_type = CMD_NORMAL;
@@ -278,7 +256,7 @@ extern int COM_API_INIT()
 	node2.ops_p.set_init = gpio1_0_set_init;
 	register_read_node(&node2);
 
-	cmdstr[128]="CMD_CMD3";
+	strncpy("CMD_CMD_",cmdstr,9);
 	memset(node3.cmd_name,0,sizeof(node3.cmd_name));
 	strncpy(cmdstr,node3.cmd_name,sizeof(cmdstr));
 	node3.cmd_type = CMD_NORMAL;
@@ -299,11 +277,11 @@ extern int COM_API_CMD(char cmd[])
 	int len = strlen(cmd);		
 	serialNode *tmp;
 	serialNode *use;
-	if(p_write_node_head == NULL){
+	if(p_read_node_head == NULL){
 		printf("There is no write node that woule set\n");
 		return -1;
 	}
-	tmp = p_write_node_head;
+	tmp = p_read_node_head;
 	while(strncmp(cmd,tmp->cmd_name,strlen(cmd)) != 0)
 	{
 		if(tmp->next != NULL){
@@ -361,14 +339,13 @@ static void *work_thread_fuc(void* p)
 				if(status_t == GPIO_DIFFERENT){
 					// send a msg to the main loop
 					if(tmp->b_send == 'n'){
-						tmp->s_send = 'y';
+						tmp->b_send = 'y';
 						tmp->lasttickcount = GetTickCount();
 					}else if(tmp->b_send == 'y' && (GetTickCount() - tmp->lasttickcount) >1000 ){ 
 						// hava alread send the Notification;
-						tmp->s_send = 'n';
+						tmp->b_send = 'n';
 						tmp->lasttickcount = 0;
 						NoticeHostEvent(tmp->id);	
-						tmp->ops_p.set_data();
 						}
 				}else{
 					; // or we do nothing 

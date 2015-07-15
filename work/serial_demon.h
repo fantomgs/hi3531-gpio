@@ -20,12 +20,6 @@
 #ifndef __SERIAL_THREAD_
 #define __SERIAL_THREAD_
 
-#ifdef WIN32
-#define WIN_API  _decpesc(dllexport) 
-#else
-#define WIN_API 
-#endif
-
 #ifdef __cplusplus 
 extern "C"{
 #endif
