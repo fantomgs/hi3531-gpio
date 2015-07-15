@@ -132,11 +132,19 @@ typedef void (*pcallback)(int event);
 
 typedef struct NodeList serialNode;
 typedef struct Serial_Ops serial_ops;
+//  对于GPIO来说，功能：
+//  0.初始化一个端口方向
+//  1.状态获取(读轮训) setdir input
+//  2.设置GPIO值
+//   但是在实际使用中，我们可能需要输出端口状态后，再读取端口反馈
+//   该部分接口可以随便添加，添加在Serial_ops，这些操作需要在硬件相关的
+//   接口去实现
 typedef int (*_set_init)(serialNode *m);
 typedef int (*_set_ops)(serialNode *m);
 typedef int (*_get_status)(serialNode *m);
+typedef int (*logic_func)(serialNode);
 
-
+//这部分内容以后可能被状态为替代
 typedef enum CMDTYOE{
 	CMD_NORMAL=0,
 	CMD_ACTIVE,
@@ -152,21 +160,39 @@ struct Serial_Ops{
 
 typedef unsigned long   DWORD;
 
+// 与延时相关的逻辑处理代码，如判断GPIO状态（消除电流扰动）
+// 若GPIO用来放按键，按键的处理，短按，长按 ，GPIO输出状态的处理，
+// 如输出延时一段时间等操做，这里面最好用的就是状态机制
 
 struct NodeList{
+	// 暂时没用 	
 	int id;
+	// 可以用于该节点动能的描述
 	char cmd_name[128];
-	int node_type;  // this coule be check 
-	char b_send;
-	DWORD lasttickcount;
+    // 若该节点处于使用中状态，则该节点不可用。
+	int b_busy; 
+	//this coule be check  node分为输出型和输入型
+	//使用宏 GPIO_FOR_READ 和 GPIO_FOR_SET
+	int node_type; 
+	// 用于表示是否发送消息 该状态可能后期被去除
+	int b_send;
+	// 这里还需要一个定时器类型
+	
+	// GPIO 状态，这个状态可能也会被去除，使用一个状态来表示节点状态
 	int gpio_status;  // kepp the gpio status
+	//  命令中状态， 该类型为enum类型，状态为 
+	//  NORMAL --> ACTIVE --> RUN
+	//  这里后期修改所有的操作都放在状态位中，通过logic逻辑来控制
+	//  因为GPIO操作基本上都有延时操作。
 	cmd_type_et cmd_type; 	
-
+	// 操作的回掉函数
+	logic_func lg_fuc;
 	serial_ops ops_p;
 	serialNode *next;
 };
 
-serialNode *p_read_node_head = NULL;
+// 链表头指针
+serialNode *p_node_head = NULL;
 
 #define ASC2NUM(ch) (ch - '0')
 #define HEXASC2NUM(ch) (ch - 'A' + 10)
@@ -174,15 +200,16 @@ serialNode *p_read_node_head = NULL;
 #define GPIO0_BASE					0x20150000
 #define GPIO_EACH_OFFSET			0x00010000
 
+// 设备节点通过该函数注册到链表中
 static int register_read_node(serialNode *node)
 {
 	serialNode *tmp;
-	if(p_read_node_head == NULL){
+	if(p_node_head == NULL){
 		// add the node to the head
-		p_read_node_head = node;
+		p_node_head = node;
 		node->next = NULL;
 	}else{
-		tmp = p_read_node_head;
+		tmp = p_node_head;
 		// here we need to check if the node list have 
 		// the same node by the function
 		while(tmp->next != NULL)
@@ -194,15 +221,16 @@ static int register_read_node(serialNode *node)
 	}
 	return 0;
 }
-
+// 调用节点中的init函数来进行端口的初始化，
+// 初始化操作包含了所有的设置动作。
 static int com_gpio_init()
 {
 	serialNode *tmp;
-	if(p_read_node_head == NULL){
+	if(p_node_head == NULL){
 		printf("com read NULL\n");
 		return -1;
 	}
-	tmp = p_read_node_head;
+	tmp = p_node_head;
 	while(tmp->next != NULL)
 	{
 		tmp->ops_p.set_init(tmp);
@@ -277,11 +305,11 @@ extern int COM_API_CMD(char cmd[])
 	int len = strlen(cmd);		
 	serialNode *tmp;
 	serialNode *use;
-	if(p_read_node_head == NULL){
+	if(p_node_head == NULL){
 		printf("There is no write node that woule set\n");
 		return -1;
 	}
-	tmp = p_read_node_head;
+	tmp = p_node_head;
 	while(strncmp(cmd,tmp->cmd_name,strlen(cmd)) != 0)
 	{
 		if(tmp->next != NULL){
@@ -309,6 +337,7 @@ HMYOBJ theObj;
 // and all the code should be static mode .
 // because these code should protect not show in the other appplication
 
+// 如果设置回调的函数就调用
 static void NoticeHostEvent(int num)
 {
 	if(theObj.pcbfuc)
@@ -319,17 +348,17 @@ static void *work_thread_fuc(void* p)
 {
 	PHMYOBJ myobj = (PHMYOBJ)p;
 	BOOL b_Run = FALSE;
-	theObj.p_reg_node = p_read_node_head;
-	serialNode *tmp = p_read_node_head;
+	theObj.p_reg_node = p_node_head;
+	serialNode *tmp = p_node_head;
 	theObj.b_run = b_Run;		
 	for(;!theObj.b_run;)
 	{
 		int nodetype = tmp->node_type;
 		int status_t;
 		cmd_type_et cmd_type;
-		tmp = p_read_node_head;
+		tmp = p_node_head;
 		// working thread code 
-		// we handle the data from the obj of theObj.p_read_node_head.ops_d.rea
+		// we handle the data from the obj of theObj.p_node_head.ops_d.rea
 		while(tmp->next != NULL)
 		{
 			switch (nodetype)
@@ -340,11 +369,9 @@ static void *work_thread_fuc(void* p)
 					// send a msg to the main loop
 					if(tmp->b_send == 'n'){
 						tmp->b_send = 'y';
-						tmp->lasttickcount = GetTickCount();
-					}else if(tmp->b_send == 'y' && (GetTickCount() - tmp->lasttickcount) >1000 ){ 
+					}else if(tmp->b_send == 'y' ){ 
 						// hava alread send the Notification;
 						tmp->b_send = 'n';
-						tmp->lasttickcount = 0;
 						NoticeHostEvent(tmp->id);	
 						}
 				}else{
@@ -370,7 +397,6 @@ static void *work_thread_fuc(void* p)
 			tmp=tmp->next;
 		}
 	}
-
 }
 
 
