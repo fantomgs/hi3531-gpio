@@ -26,6 +26,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include "serial_demon.h"
+
+
 //#####################   Logger ############################### 
 #ifdef ENABLE_LOG
 #define TRACE_LOG			trace_log
@@ -105,7 +107,7 @@ static void trace_log(const char *fmt,...)
 //#####################  End Of Logger ############################### 
 
 typedef unsigned char BYTE;
-typedef void (*pcallback)(int event);
+typedef void (*pcallback)(int,int);
 
 //#typedef enum{
 //#	FALSE = 0,
@@ -157,8 +159,11 @@ typedef enum CMDTYOE{
 
 
 struct Serial_Ops{
+	// 初始化  
 	_set_init	set_init;
+	// 获取设置
 	_set_ops	run_cmd;
+	//  获取端口状态
 	_get_status	get_status;
 };
 
@@ -254,8 +259,27 @@ static int com_gpio_init()
 	}
 }
 
+
 int	gpio1_0_set_init(serialNode *m)
 {
+	// set mulit reg
+	VOID *pMem = NULL;
+	U32 ulOld,ulNew; 
+	// set multi register
+	pMem = memmap((0x200F0000+0xB8),16);
+	ulOld = *(U32*)pMem;
+	ulOld = ulNew | (0<<0); // set out put 
+	*(U32*)pMem = ulNew;
+	// set dir register
+	pMem = memmap((0x20160000+0x400),16);
+	ulOld = *(U32*)pMem;
+	ulOld = ulNew | (1<<0);
+	*(U32*)pMem = ulNew;
+	// set data register	
+	pMem = memmap((0x20160000+0x400),16);
+	ulOld = *(U32*)pMem;
+	ulOld = ulNew | (1<<2); // set data for 1
+	*(U32*)pMem = ulNew;
 	return 0;
 }
 
@@ -266,6 +290,7 @@ int gpio1_0_run_cmd(serialNode *m)
 
 int gpio1_0_get_status(serialNode *m)
 {
+
 	return 0;
 }
 
@@ -321,6 +346,7 @@ extern int COM_API_INIT()
 	node3.ops_p.set_init = gpio1_0_set_init;
 	register_read_node(&node3);
 	*/
+
 	Ret = com_gpio_init();
 	if(Ret != 0){
 		printf("com read node init Error");
@@ -329,7 +355,27 @@ extern int COM_API_INIT()
 
 }
 
-extern int COM_API_CMD(char cmd[])
+extern int COM_API_INT(int num)
+{
+	serialNode *tmp;
+	serialNode *use;
+	if(p_node_head == NULL){
+		printf("There is no write node that woule set\n");
+		return -1;
+	}
+	tmp = p_node_head;
+	while(num != tmp->id)
+	{
+		if(tmp->next != NULL){
+			tmp = tmp->next;
+		}else{
+			printf("Dit not find the node\n");
+			return -1;
+		}
+	}
+}
+
+extern int COM_API_STR(char cmd[])
 {
 	int len = strlen(cmd);		
 	serialNode *tmp;
@@ -354,9 +400,11 @@ extern int COM_API_CMD(char cmd[])
 typedef struct{
 	char head;
 	BOOL b_run;
+	int period;
 	serialNode *p_reg_node;
 	pthread_t  h_Thread;
 	pthread_mutex_t h_Mutex;
+	//pcallback pcbfuc;
 	pcallback pcbfuc;
 }HMYOBJ,*PHMYOBJ;
 
@@ -367,23 +415,24 @@ HMYOBJ theObj;
 // because these code should protect not show in the other appplication
 
 // 如果设置回调的函数就调用
-static void NoticeHostEvent(int num)
+static void NoticeHostEvent(int num,int m)
 {
 	if(theObj.pcbfuc)
-		theObj.pcbfuc(num);
+		theObj.pcbfuc(num,m);
 }
 
 static void *work_thread_fuc(void* p)
 {
 	PHMYOBJ myobj = (PHMYOBJ)p;
 	BOOL b_Run = FALSE;
-	theObj.p_reg_node = p_node_head;
+//	theObj.p_reg_node = p_node_head;
 	serialNode *tmp = p_node_head;
 	theObj.b_run = b_Run;		
 	for(;!theObj.b_run;)
 	{
 		int nodetype = tmp->node_type;
 		int status_t;
+		int Ret = 0;
 		cmd_type_et cmd_type;
 		tmp = p_node_head;
 		// working thread code 
@@ -397,7 +446,7 @@ static void *work_thread_fuc(void* p)
 					// 端口状态发生变化后 相应其回调的处理函数
 					if((tmp->b_busy == 0) && (tmp->ops_p.get_status(tmp) == 1)) // if it is not busy and the status is changed				
 					{
-						tmp->lg_fuc(tmp);
+						tmp->lg_fuc(tmp); // use the logical fuction to handdle and send the mesg
 					}
 					break;
 
@@ -415,16 +464,18 @@ static void *work_thread_fuc(void* p)
 			}
 			tmp=tmp->next;
 		}
-		//	usleep(20);	
+			usleep(theObj.period*1000);	
 	}
 }
 
 
 //    now below code will be the API Functions;
 
-int API_Init_Object( void *fmt)
+int API_Init_Object()
 {
+	COM_API_INIT();
 	memset(&theObj,0,sizeof(theObj));
+	theObj.p_reg_node = p_node_head;
 	// the other struct init code ...
 	
 	//	pthread_mutexattr_destroy(&(theObj.h_Mutex));
@@ -432,7 +483,26 @@ int API_Init_Object( void *fmt)
 	pthread_create((pthread_t*)&(theObj.h_Thread),NULL,work_thread_fuc,&theObj);
 }
 
+//############################################BEGIN OF API #########################################
 
+int ALB_Open()
+{
+	COM_API_INT(1);
+}
+
+int ALP_Close()
+{
+	COM_API_INT(2);
+}
+
+int GPIO_MonitorStart( void (*notice)(int, int), int period )
+{
+	API_setcallback(notice);
+	theObj.period = period;
+	API_Init_Object();
+}
+
+// #############################################END OF  API ########################################
 #define STAT_EXIT TRUE
 
 int API_TerminateOject()
@@ -454,63 +524,153 @@ void API_setcallback( void *call_back_pointer)
 }
 
 
-// ************************* for the Test Application **********************
-#define event_1 1
-#define event_2 2
-#define event_3 3
 
-void event_handle(int event)
+
+// ************************* for the Test Application **********************
+#include <termios.h>
+static int ttysetraw(int fd, struct termios *tio)
 {
-	switch (event)
+	struct termios ttyios;
+	if ( tcgetattr (fd, tio) != 0 )
+		return -1;
+	memcpy(&ttyios, tio, sizeof(ttyios) );
+	ttyios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP
+                      |INLCR|IGNCR|ICRNL|IXON);
+	ttyios.c_oflag &= ~(OPOST|OLCUC|ONLCR|OCRNL|ONOCR|ONLRET);
+	ttyios.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+	ttyios.c_cflag &= ~(CSIZE|PARENB);
+	ttyios.c_cflag |= CS8;
+	ttyios.c_cc[VMIN] = 1;
+	ttyios.c_cc[VTIME] = 0;
+	return tcsetattr (fd, TCSANOW, &ttyios);
+}
+
+static int ttyrestore(int fd, struct termios *tio)
+{
+	return tcsetattr(fd, TCSANOW, tio);
+}
+
+int tty_ready( int fd )
+{
+	int	n=0;
+ 	fd_set	set;
+	struct timeval tval = {0, 10000};		// 10 msec timed out
+
+	FD_ZERO(& set);
+	FD_SET(fd, &set);
+	n = select( fd+1, &set, NULL, NULL, &tval );
+
+	return n;
+}
+
+void di_notice_handle( int di_last, int di_now )
+{
+	printf("DI CHANGED - WAS: 0x%x, IS: 0x%x\r\n", di_last, di_now);
+	switch (di_last)
 	{
-		case event_1:
+		case 0:
+			printf("Get Message 1\n");
 			break;
-		case event_2:
+		case 1:
+			printf("Get Message 2\n");
 			break;
-		case event_3:
+		case 2:
+			printf("Get Message 3\n");
+			break;
+		case 3:
+			printf("Get Message 4\n");
+			break;
+		case 4:
+			printf("Get Message 5\n");
+			break;
+		case 5:
+			printf("Get Message 6\n");
 			break;
 		default:
+			printf("Get Message 7\n");
 			break;
 	}
 }
 
-#define Code1 0
-#define Code2 1
-#define Code3 2
-void api_1(){};
-void api_2(){};
-void api_3(){};
-
-
-
-
-int main(int argc, char *argv[])
+void print_help()
 {
+	printf("keystoke operation:\r\n"
+		"'a' - trigger siren (on)\r\n"
+		"'s' - siren off\r\n"
+		"'A' - turn on siren for N seconds (default is 3)\r\n"
+		"'o' - ALB open\r\n"
+		"'c' - ALB close\r\n"
+		"'1'~'9' - set siren on period (in seconds). will be used for 'A'\r\n"
+		"'h' - print help message.\r\n" 
+		"'q' - quit\r\n"
+		);
+}
+	
+int main( int argc, char *const argv[] )
+{
+	int ch;
+	int bQuit = 0;
+	int nPeriod = 3;
+	int	fd;
+	struct termios tios_save;
+	
+	fd = 0;		// stdin
+	ttysetraw(fd, &tios_save);
 
-	BOOL b_RUN = TRUE;
-	char cv;
-//	API_Init_Object( fmt ..);
-
-	API_setcallback( event_handle );
-	for(;b_RUN;)
+	GPIO_MonitorStart(di_notice_handle, 5);
+	for(;!bQuit;)
 	{
-		if(1)				//... get the char you input )
-			; // do some
-			switch (cv)
+		if ( tty_ready(fd) && read(fd, &ch, 1)==1 )
+		{
+			ch &= 0xff;
+			switch (ch)
 			{
-				case Code1: api_1();
-					break;
-				case Code2: api_2();
-					break;
-				case Code3: api_3();
-					break;
-				default:
-					break;
+			case 'q':
+				printf("Quit test program...\r\n");
+				bQuit = 1;
+				break;
+			case 'h':
+				print_help();
+				break;
+			case 'a':
+				printf("siren on\r\n");
+				Siren_On(0);
+				break;
+			case 's':
+				printf("siren off\r\n");
+				Siren_Off();
+				break;
+			case 'A':
+				printf("siren on for %d seconds and auto off\r\n", nPeriod);
+				Siren_On(nPeriod);
+				break;
+			case 'o':
+				printf("ALB open\r\n", nPeriod);
+				ALB_Open();
+				break;
+			case 'c':
+				printf("ALB close\r\n", nPeriod);
+				ALB_Close();
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				nPeriod = ch - '0';
+				printf("siren auto off period now is %d seconds.\r\n", nPeriod );
+				break;
+			default:
+				printf("ch=%c (%d), ignored.\r\n", ch, ch );
+				break;
 			}
-
-	}
-	API_TerminateOject();
+		}
+	}	
+	GPIO_MonitorStop();
+	ttyrestore(fd, &tios_save);
 	return 0;
 }
-
-

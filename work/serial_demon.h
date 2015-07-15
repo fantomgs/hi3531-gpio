@@ -21,10 +21,11 @@
 #define __SERIAL_THREAD_
 
 #ifdef __cplusplus 
-extern "C"{
+extern "C" {
 #endif
 
-int COM_API_INIT();
+// int COM_API_INIT();
+int GPIO_MonitorStart( void (*notice)(int, int), int period );
 int ALB_Open();
 int ALB_Close();
 
