@@ -139,6 +139,8 @@ typedef struct Serial_Ops serial_ops;
 //   接口去实现
 typedef int (*_set_init)(serialNode *m);
 typedef int (*_set_ops)(serialNode *m);
+typedef int (*_set_output_on)(serialNode *m);
+typedef int (*_set_output_off)(serialNode *m);
 typedef int (*_get_status)(serialNode *m);
 typedef int (*logic_func)(serialNode *m);
 
@@ -152,9 +154,10 @@ typedef int (*logic_func)(serialNode *m);
 #define NODE_NO_BUSY			0
 //这部分内容以后可能被状态为替代
 typedef enum CMDTYOE{
-	CMD_NORMAL=0,
-	CMD_ACTIVE,
-	CMD_RUN,
+	CMD_NORMAL=0,  // normal Run
+	CMD_ACTIVE, // acive a command 
+	CMD_READY, // begin the command and run
+	CMD_RUN, // run the cmd and ready to close
 }cmd_type_et;
 
 
@@ -163,6 +166,10 @@ struct Serial_Ops{
 	_set_init	set_init;
 	// 获取设置
 	_set_ops	run_cmd;
+	// 设置端口开
+	_set_output_on set_on;
+	// 设置端口关
+	_set_output_off set_off;
 	//  获取端口状态
 	_get_status	get_status;
 };
@@ -189,6 +196,8 @@ struct NodeList{
 	//使用宏 GPIO_FOR_READ 和 GPIO_FOR_SET
 	int node_type; 
 
+
+	DWORD lastTickCount;
 	// 用于表示是否发送消息 该状态可能后期被去除
 	int b_send;
 
@@ -285,6 +294,7 @@ int	gpio1_0_set_init(serialNode *m)
 
 int gpio1_0_run_cmd(serialNode *m)
 {
+
 	return 0;
 }
 
@@ -296,7 +306,37 @@ int gpio1_0_get_status(serialNode *m)
 
 int gpio1_0_callback_func(serialNode *m)
 {
-	m->b_busy = 0;
+	// 逻辑完成的功能：当进入该命令时，从整个链表中寻找其他的node，并且关闭其他节点的任务，
+	// 并且其余节点的状态变为 OFF 该节点转化为 ON，状态改为RUN， 到时间后状态转化为NORMAL
+	// busy 改为 nobusy	
+	int id = m->id;
+	serialNode *node = m;
+	serialNode *tmp;
+	tmp = p_node_head;
+	if(node->cmd_type == CMD_ACTIVE){
+		while((tmp->cmd_type == GPIO_FOR_SET) && (id != tmp->id) && (tmp->b_busy == 1))
+		{ // disable all the node that have the command 
+			tmp->ops_p.set_off(tmp);		// set the output off
+			tmp->b_busy = 0; // change the busy status to nobusy
+			tmp->cmd_type = CMD_NORMAL;
+			tmp = tmp->next;
+		}
+		// 
+		node->ops_p.set_on(node);
+		node->b_busy = 1;   // set busy
+		node->cmd_type = CMD_READY;
+	}else if(node->cmd_type == CMD_READY){
+		// check the time if it is delay 
+		if(GetTickCount() - node->lastTickCount > 10000){
+			node->ops_p.set_off(node);
+			node->b_busy = 0;
+			node->cmd_type == CMD_NORMAL;
+		}
+
+	}else{	
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -355,7 +395,7 @@ extern int COM_API_INIT()
 
 }
 
-extern int COM_API_INT(int num)
+extern int COM_API_INT(int id)
 {
 	serialNode *tmp;
 	serialNode *use;
@@ -364,7 +404,7 @@ extern int COM_API_INT(int num)
 		return -1;
 	}
 	tmp = p_node_head;
-	while(num != tmp->id)
+	while(id != tmp->id)
 	{
 		if(tmp->next != NULL){
 			tmp = tmp->next;
@@ -373,6 +413,12 @@ extern int COM_API_INT(int num)
 			return -1;
 		}
 	}
+#ifdef RUN_WELL_DEBUG
+	printf("Find the Node id:%d\n",tmp->id);
+#endif
+	use = tmp;
+	use->cmd_type = CMD_ACTIVE;
+	return 0;
 }
 
 extern int COM_API_STR(char cmd[])
@@ -453,7 +499,7 @@ static void *work_thread_fuc(void* p)
 				case GPIO_FOR_SET:
 					// 处理设置消息代码
 					// 当存在命令后，进入回调的处理函数
-					if((tmp->b_busy == 0) && (tmp->cmd_type == CMD_ACTIVE )) // if it is not busy and we get command order
+					if((tmp->b_busy == 1) || (tmp->cmd_type != CMD_NORMAL )) // if it is not busy and we get command order
 					{
 						tmp->lg_fuc(tmp);
 					}
@@ -473,7 +519,6 @@ static void *work_thread_fuc(void* p)
 
 int API_Init_Object()
 {
-	COM_API_INIT();
 	memset(&theObj,0,sizeof(theObj));
 	theObj.p_reg_node = p_node_head;
 	// the other struct init code ...
@@ -485,14 +530,30 @@ int API_Init_Object()
 
 //############################################BEGIN OF API #########################################
 
-int ALB_Open()
+void GPIO_Init()
+{
+	COM_API_INIT();
+}
+
+void ALB_Open()
 {
 	COM_API_INT(1);
 }
 
-int ALP_Close()
+void ALB_Close()
 {
 	COM_API_INT(2);
+}
+
+
+void Siren_On()
+{
+	return 0;
+}
+
+void Siren_Off()
+{
+
 }
 
 int GPIO_MonitorStart( void (*notice)(int, int), int period )
@@ -500,6 +561,12 @@ int GPIO_MonitorStart( void (*notice)(int, int), int period )
 	API_setcallback(notice);
 	theObj.period = period;
 	API_Init_Object();
+	return 0;
+}
+
+void GPIO_MonitorStop()
+{
+	
 }
 
 // #############################################END OF  API ########################################
@@ -522,9 +589,6 @@ void API_setcallback( void *call_back_pointer)
 		theObj.pcbfuc = call_back_pointer;
 	}
 }
-
-
-
 
 // ************************* for the Test Application **********************
 #include <termios.h>
@@ -634,15 +698,15 @@ int main( int argc, char *const argv[] )
 				break;
 			case 'a':
 				printf("siren on\r\n");
-				Siren_On(0);
+				//Siren_On(0);
 				break;
 			case 's':
 				printf("siren off\r\n");
-				Siren_Off();
+				//Siren_Off();
 				break;
 			case 'A':
 				printf("siren on for %d seconds and auto off\r\n", nPeriod);
-				Siren_On(nPeriod);
+			//Siren_On(nPeriod);
 				break;
 			case 'o':
 				printf("ALB open\r\n", nPeriod);

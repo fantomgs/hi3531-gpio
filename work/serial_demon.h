@@ -24,10 +24,14 @@
 extern "C" {
 #endif
 
-// int COM_API_INIT();
+void GPIO_Init();
 int GPIO_MonitorStart( void (*notice)(int, int), int period );
-int ALB_Open();
-int ALB_Close();
+void ALB_Open();
+void ALB_Close();
+void Siren_On();
+void Siren_Off();
+
+void GPIO_MonitorStop();
 
 #ifdef __cplusplus 
 }
