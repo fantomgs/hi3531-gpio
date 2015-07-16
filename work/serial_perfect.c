@@ -8,7 +8,7 @@
  *        Version:  1.0
  *        Created:  2015-07-13 01:43:08 AM
  *       Revision:  none
- *       Compiler:  gcc
+ *       Compiler:  arm-hisiv100-gcc
  *
  *         Author:   (Mike) 
  *        Company: 	RunWell 
@@ -115,15 +115,6 @@ typedef void (*pcallback)(int,int);
 //#	TRUE = 1
 //#}BOOL;
 
-#define GPION_0 (1<<2)
-#define GPION_1 (1<<3)
-#define GPION_2 (1<<4)
-#define GPION_3 (1<<5)
-#define GPION_4 (1<<6)
-#define GPION_5 (1<<7)
-#define GPION_6 (1<<8)
-#define GPION_7 (1<<9)
-#define GPIO_DATA_OFFSET(x) (1<<(2+x))
 // what you should do is mm
 
 
@@ -184,20 +175,23 @@ int gpio_set_logical(serialNode *m)
 	serialNode *tmp;
 	tmp = p_node_head;
 	if(node->cmd_type == CMD_ACTIVE){
+#ifdef RUN_WELL_DEBUG
+		printf("【fuc:%s ,line:%d 】接收到ID:%d ALB命令:%s!\n",__func__,__LINE__,node->id,node->cmd_name);
+#endif
 		while((tmp->cmd_type == GPIO_FOR_SET) && (id != tmp->id) && (tmp->b_busy == 1))
-		{ // disable all the node that have the command 
+		{ 									// disable all the node that have the command 
 			tmp->ops_p.set_off(tmp);		// set the output off
-			tmp->b_busy = 0; // change the busy status to nobusy
+			tmp->b_busy = 0;				// change the busy status to nobusy
 			tmp->cmd_type = CMD_NORMAL;
 			tmp = tmp->next;
 		}
-		// 
+		// set the only one have the command
 		node->ops_p.set_on(node);
 		node->b_busy = 1;   // set busy
-		node->cmd_type = CMD_READY;
-	}else if(node->cmd_type == CMD_READY){
+		node->cmd_type = CMD_RUN;
+	}else if(node->cmd_type == CMD_RUN){
 		// check the time if it is delay 
-		if(GetTickCount() - node->lastTickCount > 10000){
+		if(GetTickCount() - node->lastTickCount > 100000){  // be high for 100ms
 			node->ops_p.set_off(node);
 			node->b_busy = 0;
 			node->cmd_type == CMD_NORMAL;
@@ -217,7 +211,7 @@ int gpio_read_logical(serialNode *m)
 		m->lastTickCount = GetTickCount();
 		m->b_busy = 1;
 		m->cmd_type = CMD_ACTIVE;
-	}else if((m->b_busy == 1) && (GetTickCount() - m->lastTickCount >10))
+	}else if((m->b_busy == 1) && (GetTickCount() - m->lastTickCount >10000))
 	{
 		Ret = m->ops_p.get_status(m);
 		if(Ret == 0) // 值没有变化，当做是电流扰动，返回错误消息
@@ -227,10 +221,9 @@ int gpio_read_logical(serialNode *m)
 #endif
 			return Ret;
 		}
-		if(Ret != 0){
-			msg = Ret;
-			m->cmd_type = CMD_RUN;
-			Ret = m->ops_p.get_status(m);
+		msg = Ret;
+		m->cmd_type = CMD_RUN;
+		Ret = m->ops_p.get_status(m);
 		if(Ret == 0)
 		{
 #ifdef RUN_WELL_DEBUG
@@ -238,10 +231,15 @@ int gpio_read_logical(serialNode *m)
 #endif
 			m->cmd_type = CMD_NORMAL;
 			return msg;
+		}else{
+#ifdef RUN_WELL_DEBUG
+			printf("【fuc:%s ,line:%d 】更新端口状态寄存器失败!,抛掉该事件\n",__func__,__LINE__);
+#endif
+			Ret = 0;	
+			return Ret;
 		}
-	}
-		return Ret;
 	}	
+	// 时间未到，继续监测
 	return 0;
 }
 
@@ -322,7 +320,7 @@ extern int COM_API_INT(int id)
 		}
 	}
 #ifdef RUN_WELL_DEBUG
-	printf("Find the Node id:%d\n",tmp->id);
+	printf("【fuc:%s ,line:%d 】未发现节点%d存在!\n",__func__,__LINE__,id);
 #endif
 	use = tmp;
 	use->cmd_type = CMD_ACTIVE;
@@ -457,12 +455,13 @@ void ALB_Close()
 
 void Siren_On()
 {
+
 	return 0;
 }
 
 void Siren_Off()
 {
-
+	
 }
 
 int GPIO_MonitorStart( void (*notice)(int, int), int period )
