@@ -58,9 +58,31 @@ int gpio1_0_run_cmd(serialNode *m)
 	return 0;
 }
 
-
+// #define GPIO_MSG_1_1_ON		1
+//#define GPIO_MSG_1_1_OFF	2
 int gpio1_0_get_status(serialNode *m)
 {
-
+	U32 ulOld,ulNew;
+	VOID *pMem;	
+	pMem = memmap((0x200F0000+0xB8),16);
+	ulOld = *(U32*)pMem;
+	ulOld = ulNew | (0<<0); // set out put 
+	int reg_old = m->reg_value;
+	int reg_default = m->reg_default;
+	if((reg_old & (1<<2)) ^ (ulOld & (1<<2)))  
+	{
+		if((reg_default & (1<<2)) ^ (ulOld & (1<<2)))  
+		{
+			if(m->cmd_type == CMD_RUN)
+			{
+				m->reg_value = ulOld;
+				return 0;
+			}
+			return GPIO_MSG_1_1_ON; 
+		}
+		return GPIO_MSG_1_1_OFF;
+	}
 	return 0;
 }
+
+

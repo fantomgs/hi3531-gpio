@@ -104,6 +104,8 @@ struct NodeList{
 	// 记录寄存器当前状态
 	int reg_value;
 
+	// 记录寄存器默认状态，该值在初始化时指定
+	int reg_default;
 	// 记录当前时间
 	DWORD lastTickCount;
 	// 用于表示是否发送消息 该状态可能后期被去除
@@ -127,14 +129,6 @@ struct NodeList{
 	serial_ops ops_p;
 	serialNode *next;
 };
-
-
-
-
-
-
-
-
 
 void GPIO_Init();
 int GPIO_MonitorStart( void (*notice)(int, int), int period );

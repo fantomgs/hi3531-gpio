@@ -208,11 +208,41 @@ int gpio_set_logical(serialNode *m)
 	return 0;
 }
 
+// 是否更新REG值，由是否为busy状态确定，
 int gpio_read_logical(serialNode *m)
 {
-		
-
-
+	int Ret;
+	int msg;
+	if(m->b_busy != 1 ){
+		m->lastTickCount = GetTickCount();
+		m->b_busy = 1;
+		m->cmd_type = CMD_ACTIVE;
+	}else if((m->b_busy == 1) && (GetTickCount() - m->lastTickCount >10))
+	{
+		Ret = m->ops_p.get_status(m);
+		if(Ret == 0) // 值没有变化，当做是电流扰动，返回错误消息
+		{
+#ifdef RUN_WELL_DEBUG
+			printf("【fuc:%s ,line:%d 】端口电流扰动!\n",__func__,__LINE__);
+#endif
+			return Ret;
+		}
+		if(Ret != 0){
+			msg = Ret;
+			m->cmd_type = CMD_RUN;
+			Ret = m->ops_p.get_status(m);
+		if(Ret == 0)
+		{
+#ifdef RUN_WELL_DEBUG
+			printf("【fuc:%s ,line:%d 】更新端口状态寄存器成功!\n",__func__,__LINE__);
+#endif
+			m->cmd_type = CMD_NORMAL;
+			return msg;
+		}
+	}
+		return Ret;
+	}	
+	return 0;
 }
 
 
@@ -339,10 +369,10 @@ HMYOBJ theObj;
 // because these code should protect not show in the other appplication
 
 // 如果设置回调的函数就调用
-static void NoticeHostEvent(int num,int m)
+static void NoticeHostEvent(int num,int event)
 {
 	if(theObj.pcbfuc)
-		theObj.pcbfuc(num,m);
+		theObj.pcbfuc(num,event);
 }
 
 static void *work_thread_fuc(void* p)
@@ -356,6 +386,7 @@ static void *work_thread_fuc(void* p)
 	{
 		tmp = p_node_head;
 		int nodetype = tmp->node_type;
+		int Ret;
 		// working thread code 
 		// we handle the data from the obj of theObj.p_node_head.ops_d.rea
 		while(tmp->next != NULL)
@@ -366,9 +397,11 @@ static void *work_thread_fuc(void* p)
 				case GPIO_FOR_READ:
 					// 处理读取端口的代码
 					// 端口状态发生变化后 相应其回调的处理函数
-					if((tmp->b_busy == 0) && (tmp->ops_p.get_status(tmp) == 1)) // if it is not busy and the status is changed				
+					if((tmp->ops_p.get_status(tmp) != 0)||(tmp->b_busy == 1)) // if it is not busy and the status is changed				
 					{
-						tmp->lg_fuc(tmp); // use the logical fuction to handdle and send the mesg
+						Ret = tmp->lg_fuc(tmp); // use the logical fuction to handdle and send the mesg
+						if(Ret != 0)
+							NoticeHostEvent(1,Ret);
 					}
 					break;
 
