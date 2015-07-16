@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "serial_demon.h"
+#include "platform_goio.h"
 
 
 //#####################   Logger ############################### 
@@ -125,101 +126,6 @@ typedef void (*pcallback)(int,int);
 #define GPIO_DATA_OFFSET(x) (1<<(2+x))
 // what you should do is mm
 
-//typedef status_t enum Status; 
-
-
-typedef struct NodeList serialNode;
-typedef struct Serial_Ops serial_ops;
-//  对于GPIO来说，功能：
-//  0.初始化一个端口方向
-//  1.状态获取(读轮训) setdir input
-//  2.设置GPIO值
-//   但是在实际使用中，我们可能需要输出端口状态后，再读取端口反馈
-//   该部分接口可以随便添加，添加在Serial_ops，这些操作需要在硬件相关的
-//   接口去实现
-typedef int (*_set_init)(serialNode *m);
-typedef int (*_set_ops)(serialNode *m);
-typedef int (*_set_output_on)(serialNode *m);
-typedef int (*_set_output_off)(serialNode *m);
-typedef int (*_get_status)(serialNode *m);
-typedef int (*logic_func)(serialNode *m);
-
-#define GPIO_NORMAL			0x00 // GPIO status stay same
-#define GPIO_DIFFERENT		0x01 // GPIO statue different
-
-#define GPIO_FOR_READ			0		// the node is for the check the GPIO Status
-#define GPIO_FOR_SET			1       // the node is for set the output fuse
-
-#define NODE_BUSY				1
-#define NODE_NO_BUSY			0
-//这部分内容以后可能被状态为替代
-typedef enum CMDTYOE{
-	CMD_NORMAL=0,  // normal Run
-	CMD_ACTIVE, // acive a command 
-	CMD_READY, // begin the command and run
-	CMD_RUN, // run the cmd and ready to close
-}cmd_type_et;
-
-
-struct Serial_Ops{
-	// 初始化  
-	_set_init	set_init;
-	// 获取设置
-	_set_ops	run_cmd;
-	// 设置端口开
-	_set_output_on set_on;
-	// 设置端口关
-	_set_output_off set_off;
-	//  获取端口状态
-	_get_status	get_status;
-};
-
-typedef unsigned long   DWORD;
-
-// 与延时相关的逻辑处理代码，如判断GPIO状态（消除电流扰动）
-// 若GPIO用来放按键，按键的处理，短按，长按 ，GPIO输出状态的处理，
-// 如输出延时一段时间等操做，这里面最好用的就是状态机制
-
-struct NodeList{
-	// 暂时没用 	
-	int id;
-
-	// 可以用于该节点动能的描述
-	char cmd_name[128];
-
-    // 若该节点处于使用中状态，则该节点不可用。
-	//   0 --- normal
-	//   1 --- busy
-	int b_busy; 
-
-	//this coule be check  node分为输出型和输入型
-	//使用宏 GPIO_FOR_READ 和 GPIO_FOR_SET
-	int node_type; 
-
-
-	DWORD lastTickCount;
-	// 用于表示是否发送消息 该状态可能后期被去除
-	int b_send;
-
-	// 这里还需要一个定时器类型
-	
-	// GPIO 状态，这个状态可能也会被去除，使用一个状态来表示节点状态
-	int gpio_status;  // kepp the gpio status
-
-	//  命令中状态， 该类型为enum类型，状态为 
-	//  NORMAL --> ACTIVE --> RUN
-	//  这里后期修改所有的操作都放在状态位中，通过logic逻辑来控制
-	//  因为GPIO操作基本上都有延时操作。
-	//  0 ---- NORMAL
-	//  1 ---- COMMAND
-	cmd_type_et cmd_type; 	
-
-	// 逻辑操作的回掉函数
-	logic_func lg_fuc;
-
-	serial_ops ops_p;
-	serialNode *next;
-};
 
 // 链表头指针
 serialNode *p_node_head = NULL;
@@ -268,43 +174,7 @@ static int com_gpio_init()
 	}
 }
 
-
-int	gpio1_0_set_init(serialNode *m)
-{
-	// set mulit reg
-	VOID *pMem = NULL;
-	U32 ulOld,ulNew; 
-	// set multi register
-	pMem = memmap((0x200F0000+0xB8),16);
-	ulOld = *(U32*)pMem;
-	ulOld = ulNew | (0<<0); // set out put 
-	*(U32*)pMem = ulNew;
-	// set dir register
-	pMem = memmap((0x20160000+0x400),16);
-	ulOld = *(U32*)pMem;
-	ulOld = ulNew | (1<<0);
-	*(U32*)pMem = ulNew;
-	// set data register	
-	pMem = memmap((0x20160000+0x400),16);
-	ulOld = *(U32*)pMem;
-	ulOld = ulNew | (1<<2); // set data for 1
-	*(U32*)pMem = ulNew;
-	return 0;
-}
-
-int gpio1_0_run_cmd(serialNode *m)
-{
-
-	return 0;
-}
-
-int gpio1_0_get_status(serialNode *m)
-{
-
-	return 0;
-}
-
-int gpio1_0_callback_func(serialNode *m)
+int gpio_set_logical(serialNode *m)
 {
 	// 逻辑完成的功能：当进入该命令时，从整个链表中寻找其他的node，并且关闭其他节点的任务，
 	// 并且其余节点的状态变为 OFF 该节点转化为 ON，状态改为RUN， 到时间后状态转化为NORMAL
@@ -332,13 +202,21 @@ int gpio1_0_callback_func(serialNode *m)
 			node->b_busy = 0;
 			node->cmd_type == CMD_NORMAL;
 		}
-
 	}else{	
 		return 0;
 	}
-
 	return 0;
 }
+
+int gpio_read_logical(serialNode *m)
+{
+		
+
+
+}
+
+
+
 
 extern int COM_API_INIT()
 {
@@ -357,7 +235,7 @@ extern int COM_API_INIT()
 	node0.ops_p.set_init = gpio1_0_set_init;
 	node0.ops_p.get_status = gpio1_0_get_status;
 	// logc handle callback
-	node0.lg_fuc = gpio1_0_callback_func;
+	node0.lg_fuc = gpio_set_logical;
 	register_read_node(&node0);
 
 	/*
@@ -476,15 +354,13 @@ static void *work_thread_fuc(void* p)
 	theObj.b_run = b_Run;		
 	for(;!theObj.b_run;)
 	{
-		int nodetype = tmp->node_type;
-		int status_t;
-		int Ret = 0;
-		cmd_type_et cmd_type;
 		tmp = p_node_head;
+		int nodetype = tmp->node_type;
 		// working thread code 
 		// we handle the data from the obj of theObj.p_node_head.ops_d.rea
 		while(tmp->next != NULL)
 		{
+			nodetype = tmp->node_type;
 			switch (nodetype)
 			{
 				case GPIO_FOR_READ:

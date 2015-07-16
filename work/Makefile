@@ -25,7 +25,8 @@ HICOMMON_OBJ :=
 #MAIN_OBJ=main.o 
 MAIN_SRC :=$(wildcard *.c)
 MAIN_OBJ :=$(MAIN_SRC:%.c=%.o)
-OUTTARGET :=$(MAIN_OBJ:%.o=%)
+#OUTTARGET :=$(MAIN_OBJ:%.o=%)
+OUTTARGET := main
 #!!!!!!!!!!!!!!! 1 添加生成的可执行文件
 CFG_LIB = -lpthread -lrt
 
@@ -60,8 +61,10 @@ $(OUTDIR)/%.o :  $(DRIVERDIR)/memmap/%.c
 $(MAIN_OBJ) :%.o:%.c $(OUTDIR) $(OBJ) 
 		$(CC) $(CFG_CFLAGS)  $(CFG_INC) -lpthread -c $(MAIN_SRC) 
 
-$(OUTTARGET) :%:%.o $(BASE_OBJ) $(HICOMMON_OBJ)
-	$(CC) $(CFG_INC) -lpthread -lm -o $@ $^
+#$(OUTTARGET) :%:%.o $(BASE_OBJ) $(HICOMMON_OBJ)
+$(OUTTARGET) :$(BASE_OBJ) $(HICOMMON_OBJ) $(MAIN_OBJ)
+	#$(CC) $(CFG_INC) -lpthread -lm -o $@ $^
+	$(CC) $(CFG_INC) -lpthread -lm -o $(OUTTARGET) $^
 
 clean:
 	rm -f $(OUTFILE)
