@@ -29,6 +29,11 @@
 
 // 海思平台寄存器处理
 // DAT寄存器对应的bit位为 Data[9..2]
+//
+
+
+
+
 #define GPIO_REG_FULL 0xffffffff
 #define GPIO_DATA_N_X(x) (1<<(2+(x)))
 #define GPIO_DIR_N_X(x) (1<<(x))
@@ -64,6 +69,17 @@ int gpio1_0_run_cmd(serialNode *m)
 {
 	return 0;
 }
+
+void gpio1_0_set_on()
+{
+
+}
+
+void gpio1_0_set_off()
+{
+
+}
+
 
 //#
 //# 监测端口返回值逻辑
