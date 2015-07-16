@@ -104,17 +104,9 @@ struct NodeList{
 	// 记录寄存器当前状态
 	int reg_value;
 
-	// 记录寄存器默认状态，该值在初始化时指定
-	int reg_default;
 	// 记录当前时间
 	DWORD lastTickCount;
-	// 用于表示是否发送消息 该状态可能后期被去除
-	int b_send;
-
 	
-	// GPIO 状态，这个状态可能也会被去除，使用一个状态来表示节点状态
-	int gpio_status;  // kepp the gpio status
-
 	//  命令中状态， 该类型为enum类型，状态为 
 	//  NORMAL --> ACTIVE --> RUN
 	//  这里后期修改所有的操作都放在状态位中，通过logic逻辑来控制

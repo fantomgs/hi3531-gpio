@@ -60,6 +60,9 @@ int gpio1_0_run_cmd(serialNode *m)
 
 // #define GPIO_MSG_1_1_ON		1
 //#define GPIO_MSG_1_1_OFF	2
+// 这里我们使用宏来定义某个端口的默认值，使用初始化时读取的值具有一定的
+// 不确定性，因为从端口读取的值有高低两种可能
+#define GPIO_MSG_ORIGIN_BIT (1<<2)
 int gpio1_0_get_status(serialNode *m)
 {
 	U32 ulOld,ulNew;
@@ -68,7 +71,7 @@ int gpio1_0_get_status(serialNode *m)
 	ulOld = *(U32*)pMem;
 	ulOld = ulNew | (0<<0); // set out put 
 	int reg_old = m->reg_value;
-	int reg_default = m->reg_default;
+	int reg_default = GPIO_MSG_ORIGIN_BIT;
 	if((reg_old & (1<<2)) ^ (ulOld & (1<<2)))  
 	{
 		if((reg_default & (1<<2)) ^ (ulOld & (1<<2)))  
