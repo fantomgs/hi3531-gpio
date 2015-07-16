@@ -29,14 +29,30 @@
 
 // 海思平台寄存器处理
 // DAT寄存器对应的bit位为 Data[9..2]
-//
+#define GPIO8_BASE		0x201d0000
+#define GPIO7_BASE		0x201c0000
+#define GPIO6_BASE		0x201b0000
+#define GPIO5_BASE		0x201a0000
+#define GPIO4_BASE		0x20190000
+#define GPIO3_BASE		0x20180000
+#define GPIO2_BASE		0x20170000
+#define GPIO1_BASE		0x20160000
+#define GPIO0_BASE		0x20150000
+
+#define IOCONFIG_BASE		0x200F0000
+
+#define GPIO1_0_MULIT		
 
 
 
 
-#define GPIO_REG_FULL 0xffffffff
+#define REG_SET_DIR			0x400
+#define SET_N_DIR_OUTPUT(x)		(1<<(x))	
+#define SET_N_DIR_INPUT(x)		(0<<(x))	
+
+#define GPIO_REG_FULL 0xFFFFFFFF
 #define GPIO_DATA_N_X(x) (1<<(2+(x)))
-#define GPIO_DIR_N_X(x) (1<<(x))
+
 
 #define GPIO_REG_OFFSET(x) (1<<(x))
 // ############################ GPIO_1_0 ####################################
