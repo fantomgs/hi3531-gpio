@@ -29,24 +29,34 @@
 
 // 海思平台寄存器处理
 // DAT寄存器对应的bit位为 Data[9..2]
-#define GPIO8_BASE		0x201d0000
-#define GPIO7_BASE		0x201c0000
-#define GPIO6_BASE		0x201b0000
-#define GPIO5_BASE		0x201a0000
-#define GPIO4_BASE		0x20190000
-#define GPIO3_BASE		0x20180000
-#define GPIO2_BASE		0x20170000
-#define GPIO1_BASE		0x20160000
-#define GPIO0_BASE		0x20150000
+// 控制器外接的几个引脚为 
+// INPUT:	GPIO4_0--GPIO4_5
+// OUTPUT:	GPOI3_0--GPIO3_3
+#define GPIO4_BASE				0x20190000
+#define GPIO3_BASE				0x20180000
+#define REG_DIR_OFFSET			0x400
+// 读取该寄存器的值就可以直接得到3_0-3端口的寄存器状态
+// 寄存器 0--输入  1--输出
+// 与读取的寄存器做 | 操作
+#define GPIO3_X_DIR_OUTPUT_MASK		0x0F		
+//与读取的寄存器做& 操纵
+#define GPIO4_X_DIR_INPUT_MASK		0xC0
+// 读取该寄存器的值就可以直接得到4_0-5端口的寄存器状态
+#define GPIO3_X_DATA_OFFSET		0x03c
+#define GPIO4_X_DATA_OFFSET		0x0Fc
 
-#define IOCONFIG_BASE		0x200F0000
 
-#define GPIO1_0_MULIT		
+#define IOCONFIG_BASE			0x200F0000
+// 根据文档，对于3_X 4_x这单个端口的GPIO使能只需要设置
+// 0x004 0x008 这两个地址即可使八个bit端口全部为GPIO功能
+#define GPIO3_X_MULIT			0x004
+#define GPIO3_MULIT_EN			0x01
+
+#define GPIO4_X_MULIT			0x008
+#define GPIO4_MULIT_EN			0x01
 
 
 
-
-#define REG_SET_DIR			0x400
 #define SET_N_DIR_OUTPUT(x)		(1<<(x))	
 #define SET_N_DIR_INPUT(x)		(0<<(x))	
 

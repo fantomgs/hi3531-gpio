@@ -253,21 +253,19 @@ extern int COM_API_INIT()
 	int Ret = 1;
 	serialNode node0,node1,node2,node3;
 
-	char cmdstr[128]="TEST_CMD1";
+	char cmdstr[128]="GPIO_4_0-5";
 	memset(node0.cmd_name,0,sizeof(node0.cmd_name));
 	strncpy(cmdstr,node0.cmd_name,sizeof(cmdstr));
 	node0.cmd_type = CMD_NORMAL;
 	node0.node_type = GPIO_FOR_READ;   //  for check the GPIO status
 	// node operation
 	node0.ops_p.set_init = gpio1_0_set_init;
-	node0.ops_p.set_init = gpio1_0_set_init;
 	node0.ops_p.get_status = gpio1_0_get_status;
 	// logc handle callback
 	node0.lg_fuc = gpio_set_logical;
 	register_read_node(&node0);
 
-	/*
-	strncpy("CMD_CMD_",cmdstr,9);
+	strncpy("GOIP_3_0-3",cmdstr,9);
 	memset(node1.cmd_name,0,sizeof(node1.cmd_name));
 	strncpy(cmdstr,node1.cmd_name,sizeof(cmdstr));
 	node1.cmd_type = CMD_NORMAL;
@@ -276,6 +274,7 @@ extern int COM_API_INIT()
 	register_read_node(&node1);
 
 	
+	/*
 	strncpy("CMD_CMD_",cmdstr,9);
 	memset(node2.cmd_name,0,sizeof(node2.cmd_name));
 	strncpy(cmdstr,node2.cmd_name,sizeof(cmdstr));
